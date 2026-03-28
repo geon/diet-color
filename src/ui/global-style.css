@@ -1,0 +1,61 @@
+:root {
+	color-scheme: light dark;
+
+	--accent-color: #df5;
+	@media (prefers-color-scheme: light) {
+		--accent-color: #de3;
+	}
+
+	--text-color: #fff;
+	@media (prefers-color-scheme: light) {
+		--text-color: #000;
+	}
+
+	--background-color: #242424;
+	--panel-color: #555;
+	@media (prefers-color-scheme: light) {
+		--background-color: #ddd;
+		--panel-color: #eee;
+	}
+
+	--link-color: #646cff;
+	--link-hover-color: #535bf2;
+	@media (prefers-color-scheme: light) {
+		--link-hover-color: #747bff;
+	}
+}
+
+#root {
+	min-width: 100%;
+	min-height: 100vh;
+}
+body {
+	margin: 0;
+	display: flex;
+	min-width: 320px;
+	min-height: 100vh;
+}
+
+:root {
+	font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+	line-height: 1.5;
+	font-weight: 400;
+
+	color: var(--text-color);
+	background-color: var(--background-color);
+
+	font-synthesis: none;
+	text-rendering: optimizeLegibility;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+a {
+	font-weight: 500;
+	text-decoration: inherit;
+
+	color: var(--link-color);
+	&:hover {
+		color: var(--link-hover-color);
+	}
+}
