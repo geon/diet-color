@@ -16,8 +16,8 @@ import cssModule from "./App.module.css";
 import { c64RgbPalettes } from "../palette.js";
 import { objectEntries } from "../functions.js";
 import { Select } from "./Select.js";
-import { recordQuantize } from "../record-math.js";
 import { oklabFromRgb, oklabToRgb, type Oklab } from "../oklab.js";
+import { palettize } from "../palettize.js";
 
 const style = stylize(cssModule, "base");
 
@@ -77,9 +77,12 @@ function Results(props: {
 		[props.imageData],
 	);
 
+	// eslint doesn't like functions as dependencies, but it is necessary for hot reloading.
+	const _palettize = palettize;
 	const quantized = useMemo(
-		() => imageMap(image, (rgb) => recordQuantize(rgb, palette)),
-		[image, palette],
+		//
+		() => _palettize(image, palette),
+		[image, palette, _palettize],
 	);
 
 	const imageData = useMemo(
