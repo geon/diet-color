@@ -17,6 +17,7 @@ import { c64RgbPalettes } from "../palette.js";
 import { objectEntries } from "../functions.js";
 import { Select } from "./Select.js";
 import { recordQuantize } from "../record-math.js";
+import { oklabFromRgb, oklabToRgb } from "../oklab.js";
 
 const style = stylize(cssModule, "base");
 
@@ -67,12 +68,17 @@ function Results(props: {
 	readonly paletteId: PaletteId;
 }): React.ReactNode {
 	const palette = useMemo(
-		() => c64RgbPalettes[props.paletteId],
+		() => c64RgbPalettes[props.paletteId].map(oklabFromRgb),
 		[props.paletteId],
 	);
 
 	const image = useMemo(
-		() => imageMap(imageDataToImage(props.imageData), imageDataPixelToRgb),
+		() =>
+			imageMap(imageDataToImage(props.imageData), (imageDataPixel) => {
+				const rgb = imageDataPixelToRgb(imageDataPixel);
+				const oklab = oklabFromRgb(rgb);
+				return oklab;
+			}),
 		[props.imageData],
 	);
 
@@ -82,7 +88,14 @@ function Results(props: {
 	);
 
 	const imageData = useMemo(
-		() => imageDataFromImage(imageMap(quantized, imageDataPixelFromRgb)),
+		() =>
+			imageDataFromImage(
+				imageMap(quantized, (oklab) => {
+					const rgb = oklabToRgb(oklab);
+					const imageDataPixel = imageDataPixelFromRgb(rgb);
+					return imageDataPixel;
+				}),
+			),
 		[quantized],
 	);
 
