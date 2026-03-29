@@ -13,13 +13,13 @@ export function dither(image: Image<Oklab>): Image<Oklab> {
 }
 
 function ditherPixel(color: Oklab, pos: Coord2): Oklab {
-	const bayerFactor = 0.1;
+	const bayerFactor = 0.06;
 	const bayer = getBayer(pos);
 
-	const scanLineFactor = 0;
+	const scanLineFactor = 0.08;
 	const scanLine = (pos.y % 2) - 0.5;
 
-	const noiseFactor = 0;
+	const noiseFactor = 0.02;
 	const noise = Math.random() - 0.5;
 
 	return {
