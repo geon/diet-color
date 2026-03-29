@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { ImageDataCanvas } from "./ImageDataCanvas.js";
 import { FileInput } from "./FileInput.js";
 import {
+	imageDataFromImage,
 	imageDataFromImageElement,
+	imageDataToImage,
 	imageElementFromFile,
 } from "../image-data.js";
 import { Flex } from "./Flex.jsx";
@@ -36,9 +38,16 @@ export function App() {
 }
 
 function Results(props: { imageData: ImageData }): React.ReactNode {
+	const image = useMemo(
+		() => imageDataToImage(props.imageData),
+		[props.imageData],
+	);
+	const imageData = useMemo(() => imageDataFromImage(image), [image]);
+
 	return (
 		<Flex row fill>
 			<ImageDataCanvas imageData={props.imageData} />
+			<ImageDataCanvas imageData={imageData} />
 		</Flex>
 	);
 }

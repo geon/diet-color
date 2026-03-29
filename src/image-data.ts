@@ -1,3 +1,7 @@
+import { strictChunk } from "./functions.js";
+import type { Image } from "./image.js";
+import { assertTuple, type Tuple } from "./tuple.js";
+
 export function imageDataToBlob(image: ImageData): Promise<Blob> {
 	const canvas = document.createElement("canvas");
 	const ctx = canvas.getContext("2d");
@@ -39,4 +43,22 @@ export async function imageElementFromFile(file: File | Blob | MediaSource) {
 		};
 		img.src = URL.createObjectURL(file);
 	});
+}
+
+export type ImageDataPixel = Tuple<number, 4>;
+
+export function imageDataToImage(imageData: ImageData): Image<ImageDataPixel> {
+	const size = { x: imageData.width, y: imageData.height };
+	return {
+		size,
+		pixels: assertTuple(strictChunk([...imageData.data], 4), size.x * size.y),
+	};
+}
+
+export function imageDataFromImage(image: Image<ImageDataPixel>): ImageData {
+	return new ImageData(
+		new Uint8ClampedArray(image.pixels.flat()),
+		image.size.x,
+		image.size.y,
+	);
 }
