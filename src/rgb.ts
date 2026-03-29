@@ -5,3 +5,11 @@ export interface Rgb {
 }
 
 export const black = { r: 0, g: 0, b: 0 };
+
+export function rgbFromHex(value: number): Rgb {
+	return {
+		r: (value & 0xff0000) >> 16,
+		g: (value & 0xff00) >> 8,
+		b: value & 0xff,
+	};
+}

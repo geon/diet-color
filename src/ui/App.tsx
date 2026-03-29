@@ -13,11 +13,28 @@ import { Flex } from "./Flex.jsx";
 import { stylize } from "./stylize.js";
 import { imageMap } from "../image.js";
 import cssModule from "./App.module.css";
+import { c64RgbPalettes } from "../palette.js";
+import { objectEntries } from "../functions.js";
+import { Select } from "./Select.js";
+import { recordQuantize } from "../record-math.js";
 
 const style = stylize(cssModule, "base");
 
+type PaletteId = keyof typeof c64RgbPalettes;
+
+const paletteOptions = objectEntries({
+	colodore: "Colodore",
+	pepto: "Pepto",
+	lospec: "lospec",
+	wiki: "c64-wiki",
+} satisfies Record<PaletteId, string>).map(([value, title]) => ({
+	value,
+	title,
+}));
+
 export function App() {
 	const [imageData, setImageData] = useState<ImageData | undefined>(undefined);
+	const [paletteId, setPaletteId] = useState<PaletteId>("colodore");
 
 	return (
 		<div className={style()}>
@@ -33,21 +50,40 @@ export function App() {
 					>
 						Open image...
 					</FileInput>
+					<Select
+						value={paletteId}
+						onChange={setPaletteId}
+						options={paletteOptions}
+					/>
 				</Flex>
-				{imageData && <Results imageData={imageData} />}
+				{imageData && <Results imageData={imageData} paletteId={paletteId} />}
 			</Flex>
 		</div>
 	);
 }
 
-function Results(props: { imageData: ImageData }): React.ReactNode {
+function Results(props: {
+	readonly imageData: ImageData;
+	readonly paletteId: PaletteId;
+}): React.ReactNode {
+	const palette = useMemo(
+		() => c64RgbPalettes[props.paletteId],
+		[props.paletteId],
+	);
+
 	const image = useMemo(
 		() => imageMap(imageDataToImage(props.imageData), imageDataPixelToRgb),
 		[props.imageData],
 	);
+
+	const quantized = useMemo(
+		() => imageMap(image, (rgb) => recordQuantize(rgb, palette)),
+		[image, palette],
+	);
+
 	const imageData = useMemo(
-		() => imageDataFromImage(imageMap(image, imageDataPixelFromRgb)),
-		[image],
+		() => imageDataFromImage(imageMap(quantized, imageDataPixelFromRgb)),
+		[quantized],
 	);
 
 	return (
