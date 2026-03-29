@@ -4,11 +4,14 @@ import { FileInput } from "./FileInput.js";
 import {
 	imageDataFromImage,
 	imageDataFromImageElement,
+	imageDataPixelFromRgb,
+	imageDataPixelToRgb,
 	imageDataToImage,
 	imageElementFromFile,
 } from "../image-data.js";
 import { Flex } from "./Flex.jsx";
 import { stylize } from "./stylize.js";
+import { imageMap } from "../image.js";
 import cssModule from "./App.module.css";
 
 const style = stylize(cssModule, "base");
@@ -39,10 +42,13 @@ export function App() {
 
 function Results(props: { imageData: ImageData }): React.ReactNode {
 	const image = useMemo(
-		() => imageDataToImage(props.imageData),
+		() => imageMap(imageDataToImage(props.imageData), imageDataPixelToRgb),
 		[props.imageData],
 	);
-	const imageData = useMemo(() => imageDataFromImage(image), [image]);
+	const imageData = useMemo(
+		() => imageDataFromImage(imageMap(image, imageDataPixelFromRgb)),
+		[image],
+	);
 
 	return (
 		<Flex row fill>

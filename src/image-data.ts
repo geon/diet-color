@@ -1,5 +1,6 @@
 import { strictChunk } from "./functions.js";
 import type { Image } from "./image.js";
+import type { Rgb } from "./rgb.js";
 import { assertTuple, type Tuple } from "./tuple.js";
 
 export function imageDataToBlob(image: ImageData): Promise<Blob> {
@@ -61,4 +62,14 @@ export function imageDataFromImage(image: Image<ImageDataPixel>): ImageData {
 		image.size.x,
 		image.size.y,
 	);
+}
+
+export function imageDataPixelToRgb(pixel: ImageDataPixel): Rgb {
+	const [r, g, b, _a] = pixel;
+	return { r, g, b };
+}
+export function imageDataPixelFromRgb(pixel: Rgb): ImageDataPixel {
+	const a = 255;
+	const { r, g, b } = pixel;
+	return [r, g, b, a];
 }
