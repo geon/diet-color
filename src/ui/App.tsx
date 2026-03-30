@@ -11,7 +11,12 @@ import {
 } from "../image-data.js";
 import { Flex } from "./Flex.jsx";
 import { stylize } from "./stylize.js";
-import { imageMap, type Image } from "../image.js";
+import {
+	imageDoubleWidth,
+	imageHalfWidth,
+	imageMap,
+	type Image,
+} from "../image.js";
 import cssModule from "./App.module.css";
 import { c64RgbPalettes } from "../palette.js";
 import { objectEntries } from "../functions.js";
@@ -77,17 +82,19 @@ function Results(props: {
 		[props.imageData],
 	);
 
+	const halfWidth = useMemo(() => imageHalfWidth(image), [image]);
+
 	// eslint doesn't like functions as dependencies, but it is necessary for hot reloading.
 	const _palettize = palettize;
 	const quantized = useMemo(
 		//
-		() => _palettize(dither(image), palette),
-		[image, palette, _palettize],
+		() => _palettize(dither(halfWidth), palette),
+		[halfWidth, palette, _palettize],
 	);
 
 	const imageData = useMemo(
 		//
-		() => oklabToImageData(quantized),
+		() => oklabToImageData(imageDoubleWidth(quantized)),
 		[quantized],
 	);
 

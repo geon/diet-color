@@ -1,4 +1,4 @@
-import type { MutableTuple } from "./tuple.js";
+import type { MutableTuple, Tuple } from "./tuple.js";
 
 export function chunk<T>(array: readonly T[], chunkLength: number): T[][] {
 	const chunks: T[][] = [];
@@ -22,6 +22,15 @@ export function strictChunk<T, TChunkLength extends number>(
 		);
 	}
 	return chunk(array, chunkLength) as MutableTuple<T, TChunkLength>[];
+}
+
+export function range<N extends number>(
+	length: N,
+	from: number = 0,
+): Tuple<number, N> {
+	return Array(length)
+		.fill(undefined)
+		.map((_, index) => index + from) as Tuple<number, N>;
 }
 
 export function mapRecord<TKey extends string, TIn, TOut>(

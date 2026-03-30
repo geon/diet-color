@@ -15,3 +15,11 @@ export function indexToCoord2(
 		y: Math.floor(index / size.x),
 	};
 }
+
+export function coord2ToIndex(
+	//
+	size: Coord2,
+	pos: Coord2,
+): number {
+	return size.x * pos.y + pos.x;
+}
