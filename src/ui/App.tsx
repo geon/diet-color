@@ -78,6 +78,27 @@ function Results(props: {
 	readonly imageData: ImageData;
 	readonly paletteId: PaletteId;
 }): React.ReactNode {
+	const { imageData, idealPaletteImage } = usePalettization(props);
+
+	return (
+		<Flex col>
+			<ImageDataCanvas imageData={imageData} />
+			<Flex row fill>
+				<ImageDataCanvas imageData={props.imageData} />
+				<ImageDataCanvas
+					imageData={oklabToImageData(
+						imageDoubleWidth(getFullColorImage(idealPaletteImage)),
+					)}
+				/>
+			</Flex>
+		</Flex>
+	);
+}
+
+function usePalettization(props: {
+	readonly imageData: ImageData;
+	readonly paletteId: PaletteId;
+}) {
 	const palette = useMemo(
 		() => c64RgbPalettes[props.paletteId].map(oklabFromRgb),
 		[props.paletteId],
@@ -157,20 +178,7 @@ function Results(props: {
 		() => oklabToImageData(imageDoubleWidth(quantized)),
 		[quantized],
 	);
-
-	return (
-		<Flex col>
-			<ImageDataCanvas imageData={imageData} />
-			<Flex row fill>
-				<ImageDataCanvas imageData={props.imageData} />
-				<ImageDataCanvas
-					imageData={oklabToImageData(
-						imageDoubleWidth(getFullColorImage(idealPaletteImage)),
-					)}
-				/>
-			</Flex>
-		</Flex>
-	);
+	return { imageData, idealPaletteImage };
 }
 
 function imageDataToOklab(imageData: ImageData): Image<Oklab> {
