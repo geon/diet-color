@@ -17,7 +17,7 @@ import { c64RgbPalettes } from "../palette.js";
 import { objectEntries } from "../functions.js";
 import { Select } from "./Select.js";
 import { oklabFromRgb, oklabToRgb, type Oklab } from "../oklab.js";
-import { palettize } from "../palettize.js";
+import { dither, palettize } from "../palettize.js";
 
 const style = stylize(cssModule, "base");
 
@@ -81,7 +81,7 @@ function Results(props: {
 	const _palettize = palettize;
 	const quantized = useMemo(
 		//
-		() => _palettize(image, palette),
+		() => _palettize(dither(image), palette),
 		[image, palette, _palettize],
 	);
 
