@@ -1,4 +1,4 @@
-import { mapRecord, minBy, sum } from "./functions.js";
+import { indexOfMinBy, mapRecord, sum } from "./functions.js";
 
 export type NumberRecord<Key extends string> = Readonly<Record<Key, number>>;
 
@@ -14,6 +14,20 @@ export function recordSubtract<Key extends string>(
 	b: NumberRecord<Key>,
 ): NumberRecord<Key> {
 	return mapRecord(a, (a, key) => a - b[key]);
+}
+
+export function recordMultiply<Key extends string>(
+	a: NumberRecord<Key>,
+	b: NumberRecord<Key>,
+): NumberRecord<Key> {
+	return mapRecord(a, (a, key) => a * b[key]);
+}
+
+export function recordDivide<Key extends string>(
+	a: NumberRecord<Key>,
+	b: NumberRecord<Key>,
+): NumberRecord<Key> {
+	return mapRecord(a, (a, key) => a / b[key]);
 }
 
 export function recordScale<Key extends string>(
@@ -34,9 +48,16 @@ export function recordDistanceSquared<Key extends string>(
 	);
 }
 
+export function recordQuantizeToIndex<T extends string>(
+	color: NumberRecord<T>,
+	palette: readonly NumberRecord<T>[],
+): number {
+	return indexOfMinBy(palette, (entry) => recordDistanceSquared(color, entry));
+}
+
 export function recordQuantize<T extends string>(
 	color: NumberRecord<T>,
 	palette: readonly NumberRecord<T>[],
 ): NumberRecord<T> {
-	return minBy(palette, (entry) => recordDistanceSquared(color, entry));
+	return palette[recordQuantizeToIndex(color, palette)]!;
 }
