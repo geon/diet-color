@@ -1,8 +1,24 @@
+import { useMemo } from "react";
 import type { Coord2 } from "./coord2";
-import { type Image, imageMap } from "./image";
-import { type Oklab } from "./oklab";
-import { recordQuantize } from "./record-math";
+import { indexOfMinBy } from "./functions";
+import {
+	type Image,
+	imageDoubleWidth,
+	imageHalfWidth,
+	imageMap,
+} from "./image";
+import {
+	imageDataToImage,
+	imageDataPixelToRgb,
+	imageDataFromImage,
+	imageDataPixelFromRgb,
+} from "./image-data";
+import { oklabFromRgb, oklabToRgb, type Oklab } from "./oklab";
+import { c64RgbPalettes } from "./palette";
+import { recordQuantize, recordQuantizeToIndex } from "./record-math";
+import { tileImageSplit, tileImageJoin } from "./tile-image";
 import { mapTuple } from "./tuple";
+import type { PaletteId } from "./ui/App";
 
 export function palettize(image: Image<Oklab>, palette: Oklab[]): Image<Oklab> {
 	return imageMap(image, (oklab) => recordQuantize(oklab, palette));
@@ -51,4 +67,153 @@ function getBayer(pos: Coord2): number {
 	return normalizedThresholds[pos.y % thresholdsSize.y]![
 		pos.x % thresholdsSize.x
 	]!;
+}
+
+// 4 double wide pixels
+const tileSize: Coord2 = { x: 4, y: 8 };
+
+export function usePalettization(props: {
+	readonly imageData: ImageData;
+	readonly paletteId: PaletteId;
+}) {
+	const palette = useMemo(
+		() => c64RgbPalettes[props.paletteId].map(oklabFromRgb),
+		[props.paletteId],
+	);
+
+	const image = useMemo(
+		() => imageDataToOklab(props.imageData),
+		[props.imageData],
+	);
+
+	const halfWidth = useMemo(() => imageHalfWidth(image), [image]);
+
+	// eslint doesn't like functions as dependencies, but it is necessary for hot reloading.
+	const _dither = dither;
+	const ditheredImage = useMemo(() => _dither(halfWidth), [halfWidth, _dither]);
+
+	const ditheredTiledImage = useMemo(
+		() => tileImageSplit(ditheredImage, tileSize),
+		[ditheredImage],
+	);
+
+	const idealPaletteImage = useMemo(
+		() => getPaletteImage(ditheredImage, palette),
+		[ditheredImage, palette],
+	);
+
+	const bgColorIndex = useMemo(() => {
+		const histogram = paletteImageHistogram(idealPaletteImage);
+		const bgColorIndex = indexOfMinBy(histogram, (x) => -x);
+		return bgColorIndex;
+	}, [idealPaletteImage]);
+
+	const charsAndSubPalettes = useMemo(
+		() =>
+			imageMap(ditheredTiledImage, (ditheredTile) => {
+				const idealPaletteTile = getPaletteImage(ditheredTile, palette);
+				const histogram = paletteImageHistogram(idealPaletteTile);
+				const topColorIndices = sortBy(
+					histogram.map((count, index) => ({ count, index })),
+					(x) => -x.count,
+				).map((x) => x.index);
+
+				const topColorRamIndex = topColorIndices.find((x) => x < 8);
+				const charColorIndex = topColorRamIndex ?? 0;
+				const top2OtherColorIndices = topColorIndices
+					.filter((entry) => entry !== charColorIndex && entry !== bgColorIndex)
+					.slice(0, 2);
+
+				const subPalette = [
+					bgColorIndex,
+					...top2OtherColorIndices,
+					charColorIndex,
+				];
+
+				const char = getPaletteImage(
+					imageMap(idealPaletteTile, (paletteIndex) => palette[paletteIndex]!),
+					subPalette.map((index) => palette[index]!),
+				);
+
+				return { subPalette, char };
+			}),
+		[bgColorIndex, palette, ditheredTiledImage],
+	);
+
+	const quantized = useMemo(
+		() =>
+			tileImageJoin(
+				imageMap(charsAndSubPalettes, ({ subPalette, char }) =>
+					imageMap(char, (paletteIndex) => palette[subPalette[paletteIndex]!]!),
+				),
+			),
+		[charsAndSubPalettes, palette],
+	);
+
+	const imageData = useMemo(
+		//
+		() => oklabToImageData(imageDoubleWidth(quantized)),
+		[quantized],
+	);
+	return { imageData, idealPaletteImage };
+}
+
+function imageDataToOklab(imageData: ImageData): Image<Oklab> {
+	return imageMap(imageDataToImage(imageData), (imageDataPixel) => {
+		const rgb = imageDataPixelToRgb(imageDataPixel);
+		const oklab = oklabFromRgb(rgb);
+		return oklab;
+	});
+}
+
+export function oklabToImageData(quantized: Image<Oklab>): ImageData {
+	return imageDataFromImage(
+		imageMap(quantized, (oklab) => {
+			const rgb = oklabToRgb(oklab);
+			const imageDataPixel = imageDataPixelFromRgb(rgb);
+			return imageDataPixel;
+		}),
+	);
+}
+
+function getPaletteImage(
+	oklabImage: Image<Oklab>,
+	oklabPalette: Oklab[],
+): PaletteImage {
+	return {
+		palette: oklabPalette,
+		...imageMap(oklabImage, (color) =>
+			recordQuantizeToIndex(color, oklabPalette),
+		),
+	};
+}
+
+export function getFullColorImage(paletteImage: PaletteImage): Image<Oklab> {
+	return imageMap(
+		paletteImage,
+		(paletteIndex) => paletteImage.palette[paletteIndex]!,
+	);
+}
+function sortBy<T>(array: readonly T[], select: (value: T) => number): T[] {
+	return (
+		array
+			// `select` can be expensive, so do it only once and keep the original index.
+			.map((x, index) => [index, select(x)] as const)
+			// Sort by the selected value.
+			.sort(([, a], [, b]) => a - b)
+			// Map back to the value of the original array.
+			.map(([index]) => array[index]!)
+	);
+}
+
+type PaletteImage = Image<number> & {
+	readonly palette: readonly Oklab[];
+};
+
+function paletteImageHistogram(image: PaletteImage): number[] {
+	const histogram = image.palette.map((_) => 0);
+	for (const pixel of image.pixels) {
+		++histogram[pixel]!;
+	}
+	return histogram;
 }
