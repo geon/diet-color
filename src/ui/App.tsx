@@ -11,13 +11,13 @@ import {
 } from "../image-data.js";
 import { Flex } from "./Flex.jsx";
 import { stylize } from "./stylize.js";
-import { imageMap } from "../image.js";
+import { imageMap, type Image } from "../image.js";
 import cssModule from "./App.module.css";
 import { c64RgbPalettes } from "../palette.js";
 import { objectEntries } from "../functions.js";
 import { Select } from "./Select.js";
 import { recordQuantize } from "../record-math.js";
-import { oklabFromRgb, oklabToRgb } from "../oklab.js";
+import { oklabFromRgb, oklabToRgb, type Oklab } from "../oklab.js";
 
 const style = stylize(cssModule, "base");
 
@@ -73,12 +73,7 @@ function Results(props: {
 	);
 
 	const image = useMemo(
-		() =>
-			imageMap(imageDataToImage(props.imageData), (imageDataPixel) => {
-				const rgb = imageDataPixelToRgb(imageDataPixel);
-				const oklab = oklabFromRgb(rgb);
-				return oklab;
-			}),
+		() => imageDataToOklab(props.imageData),
 		[props.imageData],
 	);
 
@@ -88,14 +83,8 @@ function Results(props: {
 	);
 
 	const imageData = useMemo(
-		() =>
-			imageDataFromImage(
-				imageMap(quantized, (oklab) => {
-					const rgb = oklabToRgb(oklab);
-					const imageDataPixel = imageDataPixelFromRgb(rgb);
-					return imageDataPixel;
-				}),
-			),
+		//
+		() => oklabToImageData(quantized),
 		[quantized],
 	);
 
@@ -104,5 +93,23 @@ function Results(props: {
 			<ImageDataCanvas imageData={props.imageData} />
 			<ImageDataCanvas imageData={imageData} />
 		</Flex>
+	);
+}
+
+function imageDataToOklab(imageData: ImageData): Image<Oklab> {
+	return imageMap(imageDataToImage(imageData), (imageDataPixel) => {
+		const rgb = imageDataPixelToRgb(imageDataPixel);
+		const oklab = oklabFromRgb(rgb);
+		return oklab;
+	});
+}
+
+function oklabToImageData(quantized: Image<Oklab>): ImageData {
+	return imageDataFromImage(
+		imageMap(quantized, (oklab) => {
+			const rgb = oklabToRgb(oklab);
+			const imageDataPixel = imageDataPixelFromRgb(rgb);
+			return imageDataPixel;
+		}),
 	);
 }
