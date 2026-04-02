@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { ImageDataCanvas } from "./ImageDataCanvas.js";
 import { FileInput } from "./FileInput.js";
 import {
@@ -16,7 +16,8 @@ import {
 	oklabToImageData,
 	usePalettization,
 } from "../palettize.js";
-import type { c64RgbPalettes } from "../palette.js";
+import { c64RgbPalettes } from "../palette.js";
+import { oklabFromRgb } from "../oklab.js";
 
 const style = stylize(cssModule, "base");
 
@@ -66,7 +67,11 @@ function Results(props: {
 	readonly imageData: ImageData;
 	readonly paletteId: PaletteId;
 }): React.ReactNode {
-	const { imageData, idealPaletteImage } = usePalettization(props);
+	const palette = useMemo(
+		() => c64RgbPalettes[props.paletteId].map(oklabFromRgb),
+		[props.paletteId],
+	);
+	const { imageData, idealPaletteImage } = usePalettization(props, palette);
 
 	return (
 		<Flex col>

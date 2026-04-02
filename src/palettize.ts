@@ -14,11 +14,9 @@ import {
 	imageDataPixelFromRgb,
 } from "./image-data";
 import { oklabFromRgb, oklabToRgb, type Oklab } from "./oklab";
-import { c64RgbPalettes } from "./palette";
 import { recordQuantize, recordQuantizeToIndex } from "./record-math";
 import { tileImageSplit, tileImageJoin } from "./tile-image";
 import { mapTuple } from "./tuple";
-import type { PaletteId } from "./ui/App";
 
 export function palettize(image: Image<Oklab>, palette: Oklab[]): Image<Oklab> {
 	return imageMap(image, (oklab) => recordQuantize(oklab, palette));
@@ -72,15 +70,12 @@ function getBayer(pos: Coord2): number {
 // 4 double wide pixels
 const tileSize: Coord2 = { x: 4, y: 8 };
 
-export function usePalettization(props: {
-	readonly imageData: ImageData;
-	readonly paletteId: PaletteId;
-}) {
-	const palette = useMemo(
-		() => c64RgbPalettes[props.paletteId].map(oklabFromRgb),
-		[props.paletteId],
-	);
-
+export function usePalettization(
+	props: {
+		readonly imageData: ImageData;
+	},
+	palette: readonly Oklab[],
+) {
 	const image = useMemo(
 		() => imageDataToOklab(props.imageData),
 		[props.imageData],
@@ -178,7 +173,7 @@ export function oklabToImageData(quantized: Image<Oklab>): ImageData {
 
 function getPaletteImage(
 	oklabImage: Image<Oklab>,
-	oklabPalette: Oklab[],
+	oklabPalette: readonly Oklab[],
 ): PaletteImage {
 	return {
 		palette: oklabPalette,
