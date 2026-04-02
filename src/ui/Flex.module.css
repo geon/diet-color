@@ -1,0 +1,25 @@
+.base {
+	display: flex;
+	gap: 1em;
+}
+
+.row {
+	flex-direction: row;
+}
+.col {
+	flex-direction: column;
+}
+
+.spaceBetween {
+	justify-content: space-between;
+}
+.center {
+	justify-content: center;
+}
+.fill {
+	& > * {
+		flex: 1 1 auto;
+		width: 100%;
+		aspect-ratio: auto;
+	}
+}
