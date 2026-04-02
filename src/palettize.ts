@@ -71,15 +71,10 @@ function getBayer(pos: Coord2): number {
 const tileSize: Coord2 = { x: 4, y: 8 };
 
 export function usePalettization(
-	props: {
-		readonly imageData: ImageData;
-	},
+	imageData: ImageData,
 	palette: readonly Oklab[],
 ) {
-	const image = useMemo(
-		() => imageDataToOklab(props.imageData),
-		[props.imageData],
-	);
+	const image = useMemo(() => imageDataToOklab(imageData), [imageData]);
 
 	const halfWidth = useMemo(() => imageHalfWidth(image), [image]);
 
@@ -145,12 +140,12 @@ export function usePalettization(
 		[charsAndSubPalettes, palette],
 	);
 
-	const imageData = useMemo(
+	const result = useMemo(
 		//
 		() => oklabToImageData(imageDoubleWidth(quantized)),
 		[quantized],
 	);
-	return { imageData, idealPaletteImage };
+	return { imageData: result, idealPaletteImage };
 }
 
 function imageDataToOklab(imageData: ImageData): Image<Oklab> {

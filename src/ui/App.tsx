@@ -71,7 +71,10 @@ function Results(props: {
 		() => c64RgbPalettes[props.paletteId].map(oklabFromRgb),
 		[props.paletteId],
 	);
-	const { imageData, idealPaletteImage } = usePalettization(props, palette);
+	const { imageData, idealPaletteImage } = usePalettization(
+		props.imageData,
+		palette,
+	);
 
 	return (
 		<Flex col>
