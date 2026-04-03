@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import type { Coord2 } from "./coord2";
+import { coord2Equal, type Coord2 } from "./coord2";
 import { indexOfMinBy, strictChunk } from "./functions";
 import {
 	type Image,
@@ -22,6 +22,7 @@ import type {
 	MulticolorBitmapChar,
 } from "./c64/multicolor-bitmap";
 import type { SubPaletteIndex } from "./c64/color-pixel-byte";
+import { screenSize } from "./c64/screen-size";
 
 export function palettize(image: Image<Oklab>, palette: Oklab[]): Image<Oklab> {
 	return imageMap(image, (oklab) => recordQuantize(oklab, palette));
@@ -86,7 +87,7 @@ export type PalettizationResults = {
 	readonly original: ImageData;
 	readonly imageData: ImageData;
 	readonly ideal: ImageData;
-	readonly getC64MulticolorBitmap: () => MulticolorBitmap;
+	readonly getC64MulticolorBitmap: (() => MulticolorBitmap) | undefined;
 };
 export function usePalettization(
 	imageData: ImageData,
@@ -211,7 +212,9 @@ export function usePalettization(
 		original: imageData,
 		imageData: result,
 		ideal,
-		getC64MulticolorBitmap,
+		getC64MulticolorBitmap: !coord2Equal(charsAndSubPalettes.size, screenSize)
+			? undefined
+			: getC64MulticolorBitmap,
 	};
 }
 

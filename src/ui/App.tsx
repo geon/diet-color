@@ -148,37 +148,54 @@ function SettingsUi(props: {
 				onChange={props.setters.setPaletteId}
 				options={paletteOptions}
 			/>
-			<FloatInput
-				value={props.settings.bayerFactor}
-				onChange={props.setters.setBayerFactor}
-			/>
-			<FloatInput
-				value={props.settings.scanLineFactor}
-				onChange={props.setters.setScanLineFactor}
-			/>
-			<FloatInput
-				value={props.settings.noiseFactor}
-				onChange={props.setters.setNoiseFactor}
-			/>
+			<label>
+				Ordered:{" "}
+				<FloatInput
+					value={props.settings.bayerFactor}
+					onChange={props.setters.setBayerFactor}
+				/>
+			</label>
+			<label>
+				Lines:{" "}
+				<FloatInput
+					value={props.settings.scanLineFactor}
+					onChange={props.setters.setScanLineFactor}
+				/>
+			</label>
+			<label>
+				White Noise:{" "}
+				<FloatInput
+					value={props.settings.noiseFactor}
+					onChange={props.setters.setNoiseFactor}
+				/>
+			</label>
 
-			{props.results && (
-				<BlobDownloadButton
-					style={{ marginLeft: "auto" }}
-					getBlob={async () => {
-						const multicolorBitmap = props.results!.getC64MulticolorBitmap();
-						const koala = multicolorBitmap && koalaSerialize(multicolorBitmap);
-						return (
-							koala && {
-								blob: new Blob([koala.buffer as ArrayBuffer], {
-									type: "application/octet-stream",
-								}),
-								fileName: "image.koa",
-							}
-						);
-					}}
-				>
-					Export Koala
-				</BlobDownloadButton>
+			{props.results?.getC64MulticolorBitmap && (
+				<Flex row style={{ marginLeft: "auto" }}>
+					<a
+						href="https://tomseditor.com/gallery/online?f=kla2prg&lang=en"
+						target="_blank"
+					>
+						Converter
+					</a>
+					<BlobDownloadButton
+						getBlob={async () => {
+							const multicolorBitmap = props.results!.getC64MulticolorBitmap!();
+							const koala =
+								multicolorBitmap && koalaSerialize(multicolorBitmap);
+							return (
+								koala && {
+									blob: new Blob([koala.buffer as ArrayBuffer], {
+										type: "application/octet-stream",
+									}),
+									fileName: "image.koa",
+								}
+							);
+						}}
+					>
+						Export Koala
+					</BlobDownloadButton>
+				</Flex>
 			)}
 		</Flex>
 	);
