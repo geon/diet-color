@@ -7,19 +7,14 @@ import {
 } from "../image-data.js";
 import { Flex } from "./Flex.jsx";
 import { stylize } from "./stylize.js";
-import { imageDoubleWidth } from "../image.js";
 import cssModule from "./App.module.css";
 import { objectEntries } from "../functions.js";
 import { Select } from "./Select.js";
-import {
-	getFullColorImage,
-	oklabToImageData,
-	usePalettization,
-	type DitherOptions,
-} from "../palettize.js";
+import { usePalettization } from "../palettize.js";
 import { c64RgbPalettes } from "../palette.js";
 import { oklabFromRgb } from "../oklab.js";
 import { FloatInput } from "./FloatInput.js";
+import type { Setter } from "./setter.js";
 
 const style = stylize(cssModule, "base");
 
@@ -35,79 +30,129 @@ const paletteOptions = objectEntries({
 	title,
 }));
 
+type Settings = {
+	readonly paletteId: PaletteId;
+	readonly bayerFactor: number;
+	readonly scanLineFactor: number;
+	readonly noiseFactor: number;
+};
+type Setters = {
+	readonly setImageData: Setter<ImageData | undefined>;
+	readonly setPaletteId: Setter<PaletteId>;
+	readonly setBayerFactor: Setter<number>;
+	readonly setScanLineFactor: Setter<number>;
+	readonly setNoiseFactor: Setter<number>;
+};
+
 export function App() {
 	const [imageData, setImageData] = useState<ImageData | undefined>(undefined);
+
 	const [paletteId, setPaletteId] = useState<PaletteId>("colodore");
 
 	const [bayerFactor, setBayerFactor] = useState<number>(0.01);
 	const [scanLineFactor, setScanLineFactor] = useState<number>(0.05);
 	const [noiseFactor, setNoiseFactor] = useState<number>(0);
 
+	const settings = {
+		paletteId,
+		bayerFactor,
+		scanLineFactor,
+		noiseFactor,
+	};
+	const setters = {
+		setImageData,
+		setPaletteId,
+		setBayerFactor,
+		setScanLineFactor,
+		setNoiseFactor,
+	};
+
+	return imageData ? (
+		<ImageUi imageData={imageData} settings={settings} setters={setters} />
+	) : (
+		<NoImageUi settings={settings} setters={setters} />
+	);
+}
+
+function NoImageUi(props: {
+	readonly settings: Settings;
+	readonly setters: Setters;
+}) {
 	return (
 		<div className={style()}>
 			<Flex col>
-				<Flex row>
-					<FileInput
-						accept={["image/*"]}
-						onChange={async (file) =>
-							setImageData(
-								imageDataFromImageElement(await imageElementFromFile(file)),
-							)
-						}
-					>
-						Open image...
-					</FileInput>
-					<Select
-						value={paletteId}
-						onChange={setPaletteId}
-						options={paletteOptions}
-					/>
-					<FloatInput value={bayerFactor} onChange={setBayerFactor} />
-					<FloatInput value={scanLineFactor} onChange={setScanLineFactor} />
-					<FloatInput value={noiseFactor} onChange={setNoiseFactor} />
-				</Flex>
-				{imageData && (
-					<Results
-						imageData={imageData}
-						paletteId={paletteId}
-						ditherOptions={{
-							bayerFactor,
-							scanLineFactor,
-							noiseFactor,
-						}}
-					/>
-				)}
+				<SettingsUi settings={props.settings} setters={props.setters} />
 			</Flex>
 		</div>
 	);
 }
 
-function Results(props: {
+function ImageUi(props: {
 	readonly imageData: ImageData;
-	readonly paletteId: PaletteId;
-	readonly ditherOptions: DitherOptions;
-}): React.ReactNode {
+	readonly settings: Settings;
+	readonly setters: Setters;
+}) {
+	// The palette must be memoized so it doesn't trigger a recalculation.
 	const palette = useMemo(
-		() => c64RgbPalettes[props.paletteId].map(oklabFromRgb),
-		[props.paletteId],
-	);
-	const { imageData, idealPaletteImage } = usePalettization(
-		props.imageData,
-		palette,
-		props.ditherOptions,
+		() => c64RgbPalettes[props.settings.paletteId].map(oklabFromRgb),
+		[props.settings.paletteId],
 	);
 
+	const results = usePalettization(props.imageData, palette, {
+		bayerFactor: props.settings.bayerFactor,
+		scanLineFactor: props.settings.scanLineFactor,
+		noiseFactor: props.settings.noiseFactor,
+	});
+
 	return (
-		<Flex col>
-			<ImageDataCanvas imageData={imageData} />
-			<Flex row fill>
-				<ImageDataCanvas imageData={props.imageData} />
-				<ImageDataCanvas
-					imageData={oklabToImageData(
-						imageDoubleWidth(getFullColorImage(idealPaletteImage)),
-					)}
-				/>
+		<div className={style()}>
+			<Flex col>
+				<SettingsUi settings={props.settings} setters={props.setters} />
+				<Flex col>
+					<ImageDataCanvas imageData={results.imageData} />
+					<Flex row fill>
+						<ImageDataCanvas imageData={results.original} />
+						<ImageDataCanvas imageData={results.ideal} />
+					</Flex>
+				</Flex>
 			</Flex>
+		</div>
+	);
+}
+
+function SettingsUi(props: {
+	readonly settings: Settings;
+	readonly setters: Setters;
+}) {
+	return (
+		<Flex row>
+			<FileInput
+				accept={["image/*"]}
+				onChange={async (file) =>
+					props.setters.setImageData(
+						imageDataFromImageElement(await imageElementFromFile(file)),
+					)
+				}
+			>
+				Open image...
+			</FileInput>
+			<Select
+				value={props.settings.paletteId}
+				onChange={props.setters.setPaletteId}
+				options={paletteOptions}
+			/>
+			<FloatInput
+				value={props.settings.bayerFactor}
+				onChange={props.setters.setBayerFactor}
+			/>
+			<FloatInput
+				value={props.settings.scanLineFactor}
+				onChange={props.setters.setScanLineFactor}
+			/>
+			<FloatInput
+				value={props.settings.noiseFactor}
+				onChange={props.setters.setNoiseFactor}
+			/>
 		</Flex>
 	);
 }

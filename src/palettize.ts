@@ -167,7 +167,14 @@ export function usePalettization(
 		() => oklabToImageData(imageDoubleWidth(quantized)),
 		[quantized],
 	);
-	return { imageData: result, idealPaletteImage };
+
+	const ideal = useMemo(
+		() =>
+			oklabToImageData(imageDoubleWidth(getFullColorImage(idealPaletteImage))),
+		[idealPaletteImage],
+	);
+
+	return { original: imageData, imageData: result, ideal };
 }
 
 function imageDataToOklab(imageData: ImageData): Image<Oklab> {
