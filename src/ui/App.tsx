@@ -10,11 +10,13 @@ import { stylize } from "./stylize.js";
 import cssModule from "./App.module.css";
 import { objectEntries } from "../functions.js";
 import { Select } from "./Select.js";
-import { usePalettization } from "../palettize.js";
+import { usePalettization, type PalettizationResults } from "../palettize.js";
 import { c64RgbPalettes } from "../palette.js";
 import { oklabFromRgb } from "../oklab.js";
 import { FloatInput } from "./FloatInput.js";
 import type { Setter } from "./setter.js";
+import { BlobDownloadButton } from "./BlobDownloadButton.js";
+import { koalaSerialize } from "../c64/koala.js";
 
 const style = stylize(cssModule, "base");
 
@@ -107,7 +109,11 @@ function ImageUi(props: {
 	return (
 		<div className={style()}>
 			<Flex col>
-				<SettingsUi settings={props.settings} setters={props.setters} />
+				<SettingsUi
+					settings={props.settings}
+					setters={props.setters}
+					results={results}
+				/>
 				<Flex col>
 					<ImageDataCanvas imageData={results.imageData} />
 					<Flex row fill>
@@ -123,6 +129,7 @@ function ImageUi(props: {
 function SettingsUi(props: {
 	readonly settings: Settings;
 	readonly setters: Setters;
+	readonly results?: PalettizationResults;
 }) {
 	return (
 		<Flex row>
@@ -153,6 +160,26 @@ function SettingsUi(props: {
 				value={props.settings.noiseFactor}
 				onChange={props.setters.setNoiseFactor}
 			/>
+
+			{props.results && (
+				<BlobDownloadButton
+					style={{ marginLeft: "auto" }}
+					getBlob={async () => {
+						const multicolorBitmap = props.results!.getC64MulticolorBitmap();
+						const koala = multicolorBitmap && koalaSerialize(multicolorBitmap);
+						return (
+							koala && {
+								blob: new Blob([koala.buffer as ArrayBuffer], {
+									type: "application/octet-stream",
+								}),
+								fileName: "image.koa",
+							}
+						);
+					}}
+				>
+					Export Koala
+				</BlobDownloadButton>
+			)}
 		</Flex>
 	);
 }

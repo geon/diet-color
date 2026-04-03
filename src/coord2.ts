@@ -23,3 +23,7 @@ export function coord2ToIndex(
 ): number {
 	return size.x * pos.y + pos.x;
 }
+
+export function coord2Equal(a: Coord2, b: Coord2): boolean {
+	return a.x === b.x && a.y === b.y;
+}

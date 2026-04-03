@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type { Coord2 } from "./coord2";
-import { indexOfMinBy } from "./functions";
+import { indexOfMinBy, strictChunk } from "./functions";
 import {
 	type Image,
 	imageDoubleWidth,
@@ -16,7 +16,12 @@ import {
 import { oklabFromRgb, oklabToRgb, type Oklab } from "./oklab";
 import { recordQuantize, recordQuantizeToIndex } from "./record-math";
 import { tileImageSplit, tileImageJoin } from "./tile-image";
-import { mapTuple } from "./tuple";
+import { assertTuple, mapTuple } from "./tuple";
+import type {
+	MulticolorBitmap,
+	MulticolorBitmapChar,
+} from "./c64/multicolor-bitmap";
+import type { SubPaletteIndex } from "./c64/color-pixel-byte";
 
 export function palettize(image: Image<Oklab>, palette: Oklab[]): Image<Oklab> {
 	return imageMap(image, (oklab) => recordQuantize(oklab, palette));
@@ -77,11 +82,17 @@ function getBayer(pos: Coord2): number {
 // 4 double wide pixels
 const tileSize: Coord2 = { x: 4, y: 8 };
 
+export type PalettizationResults = {
+	readonly original: ImageData;
+	readonly imageData: ImageData;
+	readonly ideal: ImageData;
+	readonly getC64MulticolorBitmap: () => MulticolorBitmap;
+};
 export function usePalettization(
 	imageData: ImageData,
 	palette: readonly Oklab[],
 	ditherOptions: DitherOptions,
-) {
+): PalettizationResults {
 	const image = useMemo(() => imageDataToOklab(imageData), [imageData]);
 
 	const halfWidth = useMemo(() => imageHalfWidth(image), [image]);
@@ -174,7 +185,34 @@ export function usePalettization(
 		[idealPaletteImage],
 	);
 
-	return { original: imageData, imageData: result, ideal };
+	function getC64MulticolorBitmap(): MulticolorBitmap {
+		return {
+			...imageMap(
+				charsAndSubPalettes,
+				(tile): MulticolorBitmapChar => ({
+					char: assertTuple(
+						strictChunk(tile.char.pixels, 4).map((row) =>
+							mapTuple(row, (pixel) => pixel as SubPaletteIndex),
+						),
+						8,
+					),
+					screenColors: [
+						tile.subPalette[1] as SubPaletteIndex,
+						tile.subPalette[2] as SubPaletteIndex,
+					],
+					colorRam: tile.subPalette[3] as SubPaletteIndex,
+				}),
+			),
+			bgColor: bgColorIndex,
+		};
+	}
+
+	return {
+		original: imageData,
+		imageData: result,
+		ideal,
+		getC64MulticolorBitmap,
+	};
 }
 
 function imageDataToOklab(imageData: ImageData): Image<Oklab> {
