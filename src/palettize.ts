@@ -22,27 +22,34 @@ export function palettize(image: Image<Oklab>, palette: Oklab[]): Image<Oklab> {
 	return imageMap(image, (oklab) => recordQuantize(oklab, palette));
 }
 
-export function dither(image: Image<Oklab>): Image<Oklab> {
-	return imageMap(image, ditherPixel);
+export function dither(
+	image: Image<Oklab>,
+	options: DitherOptions,
+): Image<Oklab> {
+	return imageMap(image, makeDitherPixel(options));
 }
 
-function ditherPixel(color: Oklab, pos: Coord2): Oklab {
-	const bayerFactor = 0.06;
-	const bayer = getBayer(pos);
+export type DitherOptions = {
+	readonly bayerFactor: number;
+	readonly scanLineFactor: number;
+	readonly noiseFactor: number;
+};
+function makeDitherPixel(
+	options: DitherOptions,
+): (color: Oklab, pos: Coord2) => Oklab {
+	return (color: Oklab, pos: Coord2) => {
+		const bayer = getBayer(pos);
+		const scanLine = (pos.y % 2) - 0.5;
+		const noise = Math.random() - 0.5;
 
-	const scanLineFactor = 0.08;
-	const scanLine = (pos.y % 2) - 0.5;
-
-	const noiseFactor = 0.02;
-	const noise = Math.random() - 0.5;
-
-	return {
-		...color,
-		L:
-			color.L + //
-			bayer * bayerFactor +
-			scanLine * scanLineFactor +
-			noise * noiseFactor,
+		return {
+			...color,
+			L:
+				color.L + //
+				bayer * options.bayerFactor +
+				scanLine * options.scanLineFactor +
+				noise * options.noiseFactor,
+		};
 	};
 }
 
@@ -73,6 +80,7 @@ const tileSize: Coord2 = { x: 4, y: 8 };
 export function usePalettization(
 	imageData: ImageData,
 	palette: readonly Oklab[],
+	ditherOptions: DitherOptions,
 ) {
 	const image = useMemo(() => imageDataToOklab(imageData), [imageData]);
 
@@ -80,7 +88,21 @@ export function usePalettization(
 
 	// eslint doesn't like functions as dependencies, but it is necessary for hot reloading.
 	const _dither = dither;
-	const ditheredImage = useMemo(() => _dither(halfWidth), [halfWidth, _dither]);
+	const ditheredImage = useMemo(
+		() =>
+			_dither(halfWidth, {
+				bayerFactor: ditherOptions.bayerFactor,
+				noiseFactor: ditherOptions.noiseFactor,
+				scanLineFactor: ditherOptions.scanLineFactor,
+			}),
+		[
+			halfWidth,
+			ditherOptions.bayerFactor,
+			ditherOptions.noiseFactor,
+			ditherOptions.scanLineFactor,
+			_dither,
+		],
+	);
 
 	const ditheredTiledImage = useMemo(
 		() => tileImageSplit(ditheredImage, tileSize),

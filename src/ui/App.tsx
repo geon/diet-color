@@ -15,9 +15,11 @@ import {
 	getFullColorImage,
 	oklabToImageData,
 	usePalettization,
+	type DitherOptions,
 } from "../palettize.js";
 import { c64RgbPalettes } from "../palette.js";
 import { oklabFromRgb } from "../oklab.js";
+import { FloatInput } from "./FloatInput.js";
 
 const style = stylize(cssModule, "base");
 
@@ -36,6 +38,10 @@ const paletteOptions = objectEntries({
 export function App() {
 	const [imageData, setImageData] = useState<ImageData | undefined>(undefined);
 	const [paletteId, setPaletteId] = useState<PaletteId>("colodore");
+
+	const [bayerFactor, setBayerFactor] = useState<number>(0.01);
+	const [scanLineFactor, setScanLineFactor] = useState<number>(0.05);
+	const [noiseFactor, setNoiseFactor] = useState<number>(0);
 
 	return (
 		<div className={style()}>
@@ -56,8 +62,21 @@ export function App() {
 						onChange={setPaletteId}
 						options={paletteOptions}
 					/>
+					<FloatInput value={bayerFactor} onChange={setBayerFactor} />
+					<FloatInput value={scanLineFactor} onChange={setScanLineFactor} />
+					<FloatInput value={noiseFactor} onChange={setNoiseFactor} />
 				</Flex>
-				{imageData && <Results imageData={imageData} paletteId={paletteId} />}
+				{imageData && (
+					<Results
+						imageData={imageData}
+						paletteId={paletteId}
+						ditherOptions={{
+							bayerFactor,
+							scanLineFactor,
+							noiseFactor,
+						}}
+					/>
+				)}
 			</Flex>
 		</div>
 	);
@@ -66,6 +85,7 @@ export function App() {
 function Results(props: {
 	readonly imageData: ImageData;
 	readonly paletteId: PaletteId;
+	readonly ditherOptions: DitherOptions;
 }): React.ReactNode {
 	const palette = useMemo(
 		() => c64RgbPalettes[props.paletteId].map(oklabFromRgb),
@@ -74,6 +94,7 @@ function Results(props: {
 	const { imageData, idealPaletteImage } = usePalettization(
 		props.imageData,
 		palette,
+		props.ditherOptions,
 	);
 
 	return (
